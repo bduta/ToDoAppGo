@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>To-Do List</title>
+</head>
+<body>
+    <h1>My To-Do List</h1>
+    <ul>
+    {{ range . }}
+        <li>
+            <strong>{{ .Name }}</strong> (ID: {{ .Id }})<br>
+            {{ .Description }}
+        </li>
+    {{ else }}
+        <li>No to-do items found.</li>
+    {{ end }}
+    </ul>
+</body>
+</html>

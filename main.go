@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"path/filepath"
 
 	"newtodoapp/server"
 
@@ -21,6 +22,12 @@ func Init() *http.ServeMux {
 	router.Handle("/get", traceMiddleware(http.HandlerFunc(server.GetHandler)))
 	router.Handle("/update", traceMiddleware(http.HandlerFunc(server.UpdateHandler)))
 	router.Handle("/delete", traceMiddleware(http.HandlerFunc(server.DeleteHandler)))
+	router.Handle("/list", traceMiddleware(http.HandlerFunc(server.ListHandler)))
+
+	router.Handle("/about", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		filePath := filepath.Join("static", "about.html")
+		http.ServeFile(w, r, filePath)
+	}))
 
 	return router
 }

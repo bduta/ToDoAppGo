@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"html/template"
 	"net/http"
 
 	"newtodoapp/engine"
@@ -118,4 +119,30 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message": "ToDo item deleted successfully", "traceID": "` + traceID + `"}`))
+}
+
+func ListHandler(w http.ResponseWriter, r *http.Request) {
+	traceID := r.Context().Value("traceID").(string)
+
+	tmpl, err := template.ParseFiles("templates/todos.gohtml")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "error parsing template ` + err.Error() + `", "traceID": "` + traceID + `"}`))
+		return
+	}
+
+	toDosJson, err := engine.GetItems()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "Failed to get ToDo items: ` + err.Error() + `", "traceID": "` + traceID + `"}`))
+		return
+	}
+
+	err = tmpl.Execute(w, toDosJson)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "internal server error: ` + err.Error() + `", "traceID": "` + traceID + `"}`))
+		return
+	}
+
 }
