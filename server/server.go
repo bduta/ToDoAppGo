@@ -11,7 +11,7 @@ import (
 
 const jsonContentType = "application/json"
 
-func CreateHandler(w http.ResponseWriter, r *http.Request) {
+func CreateItem(w http.ResponseWriter, r *http.Request) {
 	traceID := r.Context().Value("traceID").(string)
 	w.Header().Set("Content-Type", jsonContentType)
 
@@ -40,7 +40,7 @@ func CreateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"message": "ToDo item created successfully", "traceID": "` + traceID + `"}`))
 }
 
-func GetHandler(w http.ResponseWriter, r *http.Request) {
+func GetItems(w http.ResponseWriter, r *http.Request) {
 	traceID := r.Context().Value("traceID").(string)
 	w.Header().Set("Content-Type", jsonContentType)
 
@@ -63,7 +63,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func UpdateHandler(w http.ResponseWriter, r *http.Request) {
+func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	traceID := r.Context().Value("traceID").(string)
 	w.Header().Set("Content-Type", jsonContentType)
 
@@ -92,7 +92,7 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"message": "ToDo item updated successfully", "traceID": "` + traceID + `"}`))
 }
 
-func DeleteHandler(w http.ResponseWriter, r *http.Request) {
+func DeleteItem(w http.ResponseWriter, r *http.Request) {
 	traceID := r.Context().Value("traceID").(string)
 	w.Header().Set("Content-Type", jsonContentType)
 
@@ -121,7 +121,7 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"message": "ToDo item deleted successfully", "traceID": "` + traceID + `"}`))
 }
 
-func ListHandler(w http.ResponseWriter, r *http.Request) {
+func ListItems(w http.ResponseWriter, r *http.Request) {
 	traceID := r.Context().Value("traceID").(string)
 
 	tmpl, err := template.ParseFiles("templates/todos.gohtml")
