@@ -14,23 +14,27 @@ import (
 func main() {
 	server := initialize()
 	go actor()
-	log.Fatal(http.ListenAndServe(":5000", server))
+	log.Fatal(http.ListenAndServe(":5000", server.Handler))
 }
 
-func initialize() *http.ServeMux {
+func initialize() *http.Server {
 	router := http.NewServeMux()
-	router.Handle("/create", traceMiddleware(http.HandlerFunc(createHandler)))
-	router.Handle("/get", traceMiddleware(http.HandlerFunc(getHandler)))
-	router.Handle("/update", traceMiddleware(http.HandlerFunc(updateHandler)))
-	router.Handle("/delete", traceMiddleware(http.HandlerFunc(deleteHandler)))
-	router.Handle("/list", traceMiddleware(http.HandlerFunc(listHandler)))
+	router.HandleFunc("/create", createHandler)
+	router.HandleFunc("/get", getHandler)
+	router.HandleFunc("/update", updateHandler)
+	router.HandleFunc("/delete", deleteHandler)
+	router.HandleFunc("/list", listHandler)
 
-	router.Handle("/about", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/about", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		filePath := filepath.Join("static", "about.html")
 		http.ServeFile(w, r, filePath)
 	}))
 
-	return router
+	server := &http.Server{
+		Addr:    ":5000",
+		Handler: traceMiddleware(router),
+	}
+	return server
 }
 
 func traceMiddleware(handler http.Handler) http.Handler {
@@ -62,32 +66,56 @@ const (
 var requestChan = make(chan request, 10)
 
 func getHandler(w http.ResponseWriter, r *http.Request) {
-	sendRequestToActor(w, r, getRequest)
-}
-
-func createHandler(w http.ResponseWriter, r *http.Request) {
-	sendRequestToActor(w, r, createRequest)
-}
-
-func updateHandler(w http.ResponseWriter, r *http.Request) {
-	sendRequestToActor(w, r, updateRequest)
-}
-
-func deleteHandler(w http.ResponseWriter, r *http.Request) {
-	sendRequestToActor(w, r, deleteRequest)
-}
-
-func listHandler(w http.ResponseWriter, r *http.Request) {
-	sendRequestToActor(w, r, listRequest)
-}
-
-func sendRequestToActor(w http.ResponseWriter, r *http.Request, requestType string) {
 	signalChan := make(chan bool)
 	requestChan <- request{
 		request:     r,
 		response:    w,
 		signalChan:  signalChan,
-		requestType: requestType,
+		requestType: getRequest,
+	}
+	<-signalChan
+}
+
+func createHandler(w http.ResponseWriter, r *http.Request) {
+	signalChan := make(chan bool)
+	requestChan <- request{
+		request:     r,
+		response:    w,
+		signalChan:  signalChan,
+		requestType: createRequest,
+	}
+	<-signalChan
+}
+
+func updateHandler(w http.ResponseWriter, r *http.Request) {
+	signalChan := make(chan bool)
+	requestChan <- request{
+		request:     r,
+		response:    w,
+		signalChan:  signalChan,
+		requestType: updateRequest,
+	}
+	<-signalChan
+}
+
+func deleteHandler(w http.ResponseWriter, r *http.Request) {
+	signalChan := make(chan bool)
+	requestChan <- request{
+		request:     r,
+		response:    w,
+		signalChan:  signalChan,
+		requestType: deleteRequest,
+	}
+	<-signalChan
+}
+
+func listHandler(w http.ResponseWriter, r *http.Request) {
+	signalChan := make(chan bool)
+	requestChan <- request{
+		request:     r,
+		response:    w,
+		signalChan:  signalChan,
+		requestType: listRequest,
 	}
 	<-signalChan
 }

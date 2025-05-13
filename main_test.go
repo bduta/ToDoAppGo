@@ -18,7 +18,7 @@ func TestCreateEndpoint(t *testing.T) {
 	defer os.Remove(engine.ToDoListFileName)
 
 	router := initialize()
-	ts := httptest.NewServer(router)
+	ts := httptest.NewServer(router.Handler)
 	defer ts.Close()
 
 	go actor()
@@ -27,7 +27,7 @@ func TestCreateEndpoint(t *testing.T) {
 	client := &http.Client{}
 
 	// Send 100 POST requests concurrently
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 200; i++ {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
@@ -74,7 +74,7 @@ func TestCreateEndpoint(t *testing.T) {
 	}
 
 	lines := bytes.Split(data, []byte("\n"))
-	if len(lines)-1 != 100 { // Subtract 1 for the trailing newline
-		t.Errorf("Unexpected number of entries: got %v, want %v", len(lines)-1, 100)
+	if len(lines)-1 != 200 { // Subtract 1 for the trailing newline
+		t.Errorf("Unexpected number of entries: got %v, want %v", len(lines)-1, 200)
 	}
 }
