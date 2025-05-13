@@ -11,15 +11,13 @@ import (
 	"strings"
 )
 
-// type Engine struct{}
-
-var toDoListFileName string = "ToDoList.txt"
+var ToDoListFileName string = "ToDoList.txt"
 
 func createTheToDoListFileIfNeeded() (bool, error) {
 	creationRequired := false
-	_, err := os.Stat(toDoListFileName)
+	_, err := os.Stat(ToDoListFileName)
 	if os.IsNotExist(err) {
-		f, err := os.Create(toDoListFileName)
+		f, err := os.Create(ToDoListFileName)
 		defer f.Close()
 		creationRequired = true
 		if err != nil {
@@ -31,12 +29,12 @@ func createTheToDoListFileIfNeeded() (bool, error) {
 
 func readExistingList() (list []models.ToDoItem, err error) {
 
-	_, fileErr := os.Stat(toDoListFileName)
+	_, fileErr := os.Stat(ToDoListFileName)
 	if os.IsNotExist(fileErr) {
 		return []models.ToDoItem{}, errors.New("ToDo file does not exist")
 	}
 
-	file, fileErr := os.Open(toDoListFileName)
+	file, fileErr := os.Open(ToDoListFileName)
 	if fileErr != nil {
 		return []models.ToDoItem{}, errors.New("file could not be opened")
 	}
@@ -111,12 +109,12 @@ func getIndexBasedOnId(toDos []models.ToDoItem, id int) (index int, err error) {
 
 func writeItemToFile(item models.ToDoItem) error {
 
-	_, err := os.Stat(toDoListFileName)
+	_, err := os.Stat(ToDoListFileName)
 	if errors.Is(err, os.ErrNotExist) {
 		return errors.New("ToDoList file does not exist")
 	} else {
 
-		f, err := os.OpenFile(toDoListFileName,
+		f, err := os.OpenFile(ToDoListFileName,
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		defer f.Close()
 		if err != nil {
@@ -132,7 +130,7 @@ func writeItemToFile(item models.ToDoItem) error {
 }
 
 func writeItemsToFile(items []models.ToDoItem) error {
-	f, err := os.Create(toDoListFileName)
+	f, err := os.Create(ToDoListFileName)
 	if err != nil {
 		return errors.New("could not open the ToDoList file")
 	}

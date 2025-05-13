@@ -12,12 +12,12 @@ import (
 )
 
 func main() {
-	server := Init()
+	server := initialize()
 	go actor()
 	log.Fatal(http.ListenAndServe(":5000", server))
 }
 
-func Init() *http.ServeMux {
+func initialize() *http.ServeMux {
 	router := http.NewServeMux()
 	router.Handle("/create", traceMiddleware(http.HandlerFunc(createHandler)))
 	router.Handle("/get", traceMiddleware(http.HandlerFunc(getHandler)))
