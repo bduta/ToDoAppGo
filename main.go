@@ -93,7 +93,11 @@ func sendRequestToActor(w http.ResponseWriter, r *http.Request, requestType stri
 }
 
 func actor() {
-	for req := range requestChan {
+	for {
+		req, ok := <-requestChan
+		if !ok {
+			return // Exit the loop when the channel is closed
+		}
 		switch req.requestType {
 		case getRequest:
 			server.GetItems(req.response, req.request)

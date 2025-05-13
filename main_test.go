@@ -3,46 +3,31 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"newtodoapp/engine"
 )
 
 func TestCreateEndpoint(t *testing.T) {
-	// Change the ToDoListFileName to use a test file
+
 	engine.ToDoListFileName = "ToDoList_test.txt"
-	defer os.Remove(engine.ToDoListFileName) // Clean up test file after test
+	defer os.Remove(engine.ToDoListFileName)
 
-	server := initialize()
+	router := initialize()
+	ts := httptest.NewServer(router)
+	defer ts.Close()
 
-	// Start the server in a separate goroutine
-	srv := &http.Server{Addr: ":5000", Handler: server}
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			t.Fatalf("Failed to start server: %v", err)
-		}
-	}()
-
-	// Ensure the server is stopped after the test
-	defer func() {
-		if err := srv.Close(); err != nil {
-			t.Fatalf("Failed to stop server: %v", err)
-		}
-	}()
-
-	// Wait briefly to ensure the server is running
-	time.Sleep(100 * time.Millisecond)
+	go actor()
 
 	var wg sync.WaitGroup
 	client := &http.Client{}
 
-	// Send 1000 POST requests concurrently
-	for i := 0; i < 10; i++ {
+	// Send 100 POST requests concurrently
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
@@ -60,7 +45,7 @@ func TestCreateEndpoint(t *testing.T) {
 				return
 			}
 
-			req, err := http.NewRequest(http.MethodPost, "http://localhost:5000/create", bytes.NewBuffer(jsonData))
+			req, err := http.NewRequest(http.MethodPost, ts.URL+"/create", bytes.NewBuffer(jsonData))
 			if err != nil {
 				t.Errorf("Failed to create request: %v", err)
 				return
@@ -81,15 +66,15 @@ func TestCreateEndpoint(t *testing.T) {
 	}
 
 	wg.Wait()
+	close(requestChan)
 
-	// Verify the test file contains 1000 entries
-	data, err := ioutil.ReadFile(engine.ToDoListFileName)
+	data, err := os.ReadFile(engine.ToDoListFileName)
 	if err != nil {
 		t.Fatalf("Failed to read test file: %v", err)
 	}
 
 	lines := bytes.Split(data, []byte("\n"))
-	if len(lines)-1 != 10 { // Subtract 1 for the trailing newline
-		t.Errorf("Unexpected number of entries: got %v, want %v", len(lines)-1, 10)
+	if len(lines)-1 != 100 { // Subtract 1 for the trailing newline
+		t.Errorf("Unexpected number of entries: got %v, want %v", len(lines)-1, 100)
 	}
 }
