@@ -3,6 +3,7 @@ package engine
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"newtodoapp/models"
 	"os"
@@ -159,47 +160,52 @@ func ExecuteCommand(arguments []string) error {
 		return nil
 	}
 
-	flag := arguments[0]
-	switch strings.ToLower(flag) {
-	case "-a":
-		if len(arguments) != 3 {
-			return errors.New("Incorrect number of arguments. The format to add a flag is: -a FlagName FlagDescription")
+	op := flag.String("op", "", "operation to be performed")
+	id := flag.Int("id", -1, "to do id")
+	name := flag.String("name", "", "to do name")
+	description := flag.String("description", "", "to do description")
+
+	flag.Parse()
+
+	switch strings.ToLower(*op) {
+	case "add":
+		if *name == "" {
+			return errors.New("missing flag name")
 		}
 
-		err := CreateItem(arguments[1], arguments[2])
+		if *description == "" {
+			return errors.New("missing flag description")
+		}
+
+		err := CreateItem(*name, *description)
 		if err != nil {
 			return errors.New("Error creating item: " + err.Error())
 		}
 
 		fmt.Println("Item added successfully")
-	case "-u":
-		if len(arguments) != 3 {
-			return errors.New("Incorrect number of arguments. The format to update a flag is: -u FlagId FlagDescription")
+	case "update":
+
+		if *id == -1 {
+			return errors.New("invalid flag id")
 		}
 
-		flagId, err := strconv.Atoi(arguments[1])
-		if err != nil {
-			return errors.New("Id could not be converted to int: " + arguments[1])
+		if *description == "" {
+			return errors.New("missing flag description")
 		}
 
-		err = UpdateItem(flagId, arguments[2])
+		err := UpdateItem(*id, *description)
 		if err != nil {
 			return errors.New("Error updating item: " + err.Error())
 		}
 
 		fmt.Println("Item updated successfully")
 
-	case "-d":
-		if len(arguments) != 2 {
-			return errors.New("Incorrect number of arguments. The format to delete a flag is: -d FlagId")
+	case "delete":
+		if *id == -1 {
+			return errors.New("invalid flag id")
 		}
 
-		flagId, err := strconv.Atoi(arguments[1])
-		if err != nil {
-			return errors.New("Id could not be converted to int: " + arguments[1])
-		}
-
-		err = DeleteItem(flagId)
+		err := DeleteItem(*id)
 		if err != nil {
 			return errors.New("Error deleting item: " + err.Error())
 		}
@@ -207,10 +213,10 @@ func ExecuteCommand(arguments []string) error {
 		fmt.Println("Item deleted successfully")
 
 	default:
-		fmt.Println("The flag entered is not valid.")
-		fmt.Println("To add a flag: -a FlagName FlagDescription")
-		fmt.Println("To update a flag: -u FlagId FlagDescription")
-		fmt.Println("To delete a flag: -d FlagId")
+		fmt.Println("The operation flag entered is not valid.")
+		fmt.Println("To add a flag: -op=add -name=<FlagName> -description=<FlagDescription>")
+		fmt.Println("To update a flag: -op=update -id=<FlagId> -description=<FlagDescription>")
+		fmt.Println("To delete a flag: -op=delete -id=<FlagId>")
 	}
 	return nil
 }
