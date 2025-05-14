@@ -5,11 +5,12 @@ import (
 	"html/template"
 	"net/http"
 
-	"newtodoapp/engine"
 	"newtodoapp/models"
 )
 
 const jsonContentType = "application/json"
+
+var items = make(map[string]string)
 
 func CreateItem(w http.ResponseWriter, r *http.Request) {
 	traceID := r.Context().Value("traceID").(string)
@@ -29,12 +30,7 @@ func CreateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	error := engine.CreateItem(input.Name, input.Description)
-	if error != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error": "Failed to create ToDo item: ` + error.Error() + `", "traceID": "` + traceID + `"}`))
-		return
-	}
+	items[input.Name] = input.Description
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(`{"message": "ToDo item created successfully", "traceID": "` + traceID + `"}`))
@@ -50,15 +46,8 @@ func GetItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	toDosJson, err := engine.GetItems()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error": "Failed to get ToDo items: ` + err.Error() + `", "traceID": "` + traceID + `"}`))
-		return
-	}
-
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(toDosJson); err != nil {
+	if err := json.NewEncoder(w).Encode(items); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -81,12 +70,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	error := engine.UpdateItem(input.Id, input.Description)
-	if error != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error": "Failed to update ToDo item: ` + error.Error() + `", "traceID": "` + traceID + `"}`))
-		return
-	}
+	items[input.Name] = input.Description
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message": "ToDo item updated successfully", "traceID": "` + traceID + `"}`))
@@ -110,12 +94,7 @@ func DeleteItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := engine.DeleteItem(input.Id)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error": "Failed to delete ToDo item: ` + err.Error() + `", "traceID": "` + traceID + `"}`))
-		return
-	}
+	delete(items, input.Name)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message": "ToDo item deleted successfully", "traceID": "` + traceID + `"}`))
@@ -131,14 +110,15 @@ func ListItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	toDosJson, err := engine.GetItems()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error": "Failed to get ToDo items: ` + err.Error() + `", "traceID": "` + traceID + `"}`))
-		return
+	var todoItems []models.ToDoItem
+	for name, description := range items {
+		todoItems = append(todoItems, models.ToDoItem{
+			Name:        name,
+			Description: description,
+		})
 	}
 
-	err = tmpl.Execute(w, toDosJson)
+	err = tmpl.Execute(w, todoItems)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error": "internal server error: ` + err.Error() + `", "traceID": "` + traceID + `"}`))

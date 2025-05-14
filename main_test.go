@@ -2,20 +2,16 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"strconv"
 	"sync"
 	"testing"
-
-	"newtodoapp/engine"
 )
 
 func TestCreateEndpoint(t *testing.T) {
-
-	engine.ToDoListFileName = "ToDoList_test.txt"
-	defer os.Remove(engine.ToDoListFileName)
 
 	router := initialize()
 	ts := httptest.NewServer(router.Handler)
@@ -24,16 +20,14 @@ func TestCreateEndpoint(t *testing.T) {
 	go actor()
 
 	var wg sync.WaitGroup
-	client := &http.Client{}
 
-	// Send 100 POST requests concurrently
-	for i := 0; i < 200; i++ {
+	for i := 0; i < 10000; i++ {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
 
-			name := "test"
-			description := "des"
+			name := "test" + strconv.Itoa(index)
+			description := "des" + strconv.Itoa(index)
 			item := map[string]string{
 				"name":        name,
 				"description": description,
@@ -45,36 +39,50 @@ func TestCreateEndpoint(t *testing.T) {
 				return
 			}
 
-			req, err := http.NewRequest(http.MethodPost, ts.URL+"/create", bytes.NewBuffer(jsonData))
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodPost, "/create", bytes.NewBuffer(jsonData))
 			if err != nil {
 				t.Errorf("Failed to create request: %v", err)
 				return
 			}
 			req.Header.Set("Content-Type", "application/json")
-
-			resp, err := client.Do(req)
-			if err != nil {
-				t.Errorf("Request failed: %v", err)
-				return
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusCreated {
-				t.Errorf("Unexpected status code: got %v, want %v", resp.StatusCode, http.StatusCreated)
-			}
+			ctx := context.WithValue(req.Context(), "traceID", "1")
+			createHandler(w, req.WithContext(ctx))
 		}(i)
 	}
 
 	wg.Wait()
+
+	wg.Add(1)
+	items := make(map[string]string)
+	go func() {
+		defer wg.Done()
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/get", nil)
+		if err != nil {
+			t.Errorf("Failed to create request: %v", err)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		ctx := context.WithValue(req.Context(), "traceID", "1")
+		getHandler(w, req.WithContext(ctx))
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status code 200, got %d", w.Code)
+			return
+		}
+		if err := json.NewDecoder(w.Body).Decode(&items); err != nil {
+			t.Errorf("Failed to decode response: %v", err)
+			return
+		}
+	}()
+
+	wg.Wait()
+
+	if len(items) != 10000 {
+		t.Errorf("Expected 10000 items, got %d", len(items))
+		return
+	}
+
 	close(requestChan)
-
-	data, err := os.ReadFile(engine.ToDoListFileName)
-	if err != nil {
-		t.Fatalf("Failed to read test file: %v", err)
-	}
-
-	lines := bytes.Split(data, []byte("\n"))
-	if len(lines)-1 != 200 { // Subtract 1 for the trailing newline
-		t.Errorf("Unexpected number of entries: got %v, want %v", len(lines)-1, 200)
-	}
 }
